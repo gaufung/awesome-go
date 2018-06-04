@@ -1,8 +1,9 @@
 # Awesome in Go
-Best Practice in Go
 
 
-# Error-handing and panicking in custom package
+# 1 Bast Practices
+
+##  Error-handing and panicking in custom package
 -  *always recover from panic from your package*
 -  *return errors to the caller of your package*
 ```go
@@ -49,3 +50,49 @@ func field2numbers(fields []string)(number []int){
 }
 ```
 
+## Error-handing scheme with closures
+
+Suppose all functions have the signature:
+```go
+func f(a type1, b type2)
+```
+
+Scheme uses 2 helper functions:
+-  `check` a function to test whether an error occurred.
+```go
+func check(err error){
+    if err!=nil{
+        panic(err)
+    }
+}
+```
+-  `errorhandler` a wrapper function.
+```go
+type fType1 func(a type1, b type2)
+func errorHandler(fn fType1) fType1 {
+    return func(a type1, b type2){
+        defer func(){
+            if e, ok := recover().(error); ok {
+                log.Printf("run time panic: %v", err)
+            }
+        }()
+        fn(a, b)
+    }
+}
+```
+- Custom function
+```go
+func f1(a type1, b type2){
+    f, err := // call other function or method
+    check(err)
+    t, err := // call other function or method
+    check(err)
+}
+```
+- Usage
+```go
+func main(){
+    errorHandler(f1)
+    errorHandler(f2)
+}
+```
