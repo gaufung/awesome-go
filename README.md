@@ -96,3 +96,34 @@ func main(){
     errorHandler(f2)
 }
 ```
+
+## Testing
+
+- Fail() 
+
+making test function failed
+
+- FailNow()
+making test function failed and stop execution.
+
+- Log(args ... interface{})
+log test
+
+- Fatal(args ... interface{})
+combined `FailNow` and `Log`
+
+**Table-Driven Tests**
+```go
+var tests = []struct {
+    input string
+    expected string
+}{
+    {"in1", "exp1"},
+    {"in2", "exp2"},
+    //....
+}
+for _, tt := range tests {
+    //...
+}
+```
+
