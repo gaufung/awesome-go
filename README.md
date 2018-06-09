@@ -1,5 +1,3 @@
-Awesome in Go
-
 **Table of Content**
 
 - [Best Practices](#best-practices)
@@ -10,8 +8,11 @@ Awesome in Go
     - [Code Snippets](#code-snippets)
     - [Advices](#advices)
 
+- [Go Project with Makefile](#go-project-with-makefile)
+
 <h1 id="best-practices">Best Practices</h1>
 <h2 id="error-handing-in-custom-package">Error-Handling in Custom Package</h2>
+
 -  *always recover from panic from your package*
 -  *return errors to the caller of your package*
 
@@ -60,7 +61,9 @@ func field2numbers(fields []string)(number []int){
 ```
 
 <h2 id="error-handing-schem-wtih-closures">Error-Handling Scheme with Closure</h2>
+
 Suppose all functions have the signature:
+
 ```go
 func f(a type1, b type2)
 ```
@@ -107,18 +110,10 @@ func main(){
 
 <h2 id="test">Testing</h2>
 
-- Fail() 
-
-making test function failed
-
-- FailNow()
-making test function failed and stop execution.
-
-- Log(args ... interface{})
-log test
-
-- Fatal(args ... interface{})
-combined `FailNow` and `Log`
+- Fail(): making test function failed
+- FailNow(): making test function failed and stop execution.
+- Log(args ... interface{}): log test
+- Fatal(args ... interface{}): combined `FailNow` and `Log`
 
 **Table-Driven Tests**
 ```go
@@ -474,3 +469,54 @@ func worker(in, out chan *Task){
 - specify an initial capacity for maps
 - When define methods, using a pointer to tyepe as a receiver.
 - Using caching
+
+
+<h1 id="go-project-with-makefile">Go Project with Makefile</h1>
+Though go provides many tools for us to build project, we still get benifit from `Makefile`
+
+```Makefile
+# Go Parameter
+GOCMD=go
+GOBUILD=$(GOCMD) build
+GOCLEAN=$(GOCMD) clean
+GOTEST=$(GOCMD) test
+GOGET=$(GOCMD) get
+BINARY_NAME=myBinary-$$(git describe)
+BINARY_LINUX=$(BINARY_NAME)_linux
+BINARY_DARWIN=$(BINARY_NAME)_darwin
+BINARY_WINDOW=$(BINARY_NAME)_windows
+
+all: deps test build
+build:
+	$(GOBUILD) -o $(BINARY_NAME) -v
+
+test:
+	$(GOTEST) -v ./...
+
+clean:
+	$(GOCLEAN)
+	rm -rf $(BINARY_NAME)
+	rm -rf $(BINARY_LINUX)
+	rm -rf $(BINARY_WINDOW)
+	rm -rf $(BINARY_DARWIN)
+run:
+	$(GOBUILD) -o $(BINARY_NAME) -v
+	./$(BINARY_NAME)
+
+deps:
+	$(GOGET) -u github.com/gorilla/mux
+	$(GOGET) -u github.com/go-redis/redis
+	$(GOGET) github.com/koding/cache
+	$(GOGET) gopkg.in/jarcoal/httpmock.v1
+
+# cross compilation
+build-linux:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_LINUX) -v
+
+build-darwin:
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GOBUILD) -o $(BINARY_DARWIN) -v
+
+build-windows:
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GOBUILD) -o $(BINARY_WINDOW) -v
+```
+
