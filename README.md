@@ -472,6 +472,7 @@ func worker(in, out chan *Task){
 
 
 <h1 id="go-project-with-makefile">Go Project with Makefile</h1>
+
 Though go provides many tools for us to build project, we still get benifit from `Makefile`
 
 ```Makefile
