@@ -1,11 +1,20 @@
-# Awesome in Go
+Awesome in Go
 
+**Table of Content**
 
-# 1 Bast Practices
+- [Best Practices](#best-practices)
+    - [Error-Handling in Custom Package](#error-handling-in-custom-package)
+    - [Error-Handling Scheme with Closure](#error-handling-scheme-with-clouse)
+    - [Testing](#testing)
+    - [Channel](#channel)
+    - [Code Snippets](#code-snippets)
+    - [Advices](#advices)
 
-##  Error-handing and panicking in custom package
+<h1 id="best-practices">Best Practices</h1>
+<h2 id="error-handing-in-custom-package">Error-Handling in Custom Package</h2>
 -  *always recover from panic from your package*
 -  *return errors to the caller of your package*
+
 ```go
 package parse 
 import (
@@ -50,8 +59,7 @@ func field2numbers(fields []string)(number []int){
 }
 ```
 
-## Error-handing scheme with closures
-
+<h2 id="error-handing-schem-wtih-closures">Error-Handling Scheme with Closure</h2>
 Suppose all functions have the signature:
 ```go
 func f(a type1, b type2)
@@ -97,7 +105,7 @@ func main(){
 }
 ```
 
-## Testing
+<h2 id="test">Testing</h2>
 
 - Fail() 
 
@@ -127,7 +135,8 @@ for _, tt := range tests {
 }
 ```
 
-## Concurrence, Parallelism and Goroutine
+<h2 id="concurrence-parallelism-and-goroutine">Concurrence, Parallelism and Goroutine</h2>
+
 - *concurrence* application can execute on 1 processor or core using a number of threads.
 - *parallelism* same application process executes at the same point in time on a number of cores or processors.
 - *goroutine* is not one-to-one correspondence between a goroutine and an operating system thread.
@@ -139,7 +148,7 @@ if GOMAXPROCS is greater than 1, you application can execute simultaneously by m
 **GOMAXPROCS** is equal to the number of threads, on a machine with more than 1 core, as many as thread as there cores can run in parallel.
 
 
-## Channel 
+<h2 id="channel">Channel</h2>
 
 ### Semaphore pattern
 ```go
@@ -224,8 +233,7 @@ func Worker(in, out chan *Task) {
 }
 ```
 
-## Code Snippets
-
+<h2 id="code-snippets">Code Snippets</h2>
 ### Strings
 - change a character
 ```go
@@ -455,7 +463,8 @@ func worker(in, out chan *Task){
 }
 ```
 
-## advice
+<h2 id="advices">Advices</h2>
+
 - Use initializing declaration form `:=` wherever possible.
 - Use bytes instead of strings if possible
 - Use slices instead of arrays
