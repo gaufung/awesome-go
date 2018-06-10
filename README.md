@@ -9,6 +9,8 @@
     - [Advices](#advices)
 
 - [Go Project with Makefile](#go-project-with-makefile)
+- [Go Web Unit Test](#go-web-unit-test)
+- [HTTP Mock](#http-mock)
 
 <h1 id="best-practices">Best Practices</h1>
 <h2 id="error-handing-in-custom-package">Error-Handling in Custom Package</h2>
@@ -473,7 +475,7 @@ func worker(in, out chan *Task){
 
 <h1 id="go-project-with-makefile">Go Project with Makefile</h1>
 
-Though go provides many tools for us to build project, we still get benifit from `Makefile`
+Though go provides many tools for us to build project, we still get benifit from `Makefile`.
 
 ```Makefile
 # Go Parameter
@@ -521,3 +523,38 @@ build-windows:
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GOBUILD) -o $(BINARY_WINDOW) -v
 ```
 
+<h1 id="go-web-unit-test">Go Web Unit Test</h1>
+As you complete some http request handlers, you want to test them to check they work as expected.
+
+```go
+func MyHandler(w http.ResponseWriter, r *http.Request){
+    // http logic that you havt to do.
+}
+
+// unit-test
+import "github.com/gorila/mux"
+request, err := http.NewReuqest("GET", url, nil)
+if err != nil {
+    t.Fatal(err)
+}
+rr := httptest.NewRecorder()
+router := mux.NewRouter()
+router.HandleFuc(url, MyHandler)
+router.ServeHTTP(rr, req)
+if rr.code != exptectCode{
+    t.Errorf("....")
+}
+```
+
+<h1 id="http-mock">Http Mock</h1>
+Once you want to mock a http server, you do not rewrite your codes to adjust to the mock interfaces
+
+```go
+import "gopkg.in/jarcoal/httpmock.v1"
+httpmock.Activate()
+defer httmock.DeactivateAndReset()
+httpmock.RegisterReponder("GET", url,
+    httpmock.NewStringResponder(200, `{'request':10}`))
+
+//...
+```
