@@ -11,6 +11,8 @@
 - [Go Project with Makefile](#go-project-with-makefile)
 - [Go Web Unit Test](#go-web-unit-test)
 - [HTTP Mock](#http-mock)
+- [GO Libraries](#go-libraries)
+    - [Testing](#testing-library)
 
 <h1 id="best-practices">Best Practices</h1>
 <h2 id="error-handing-in-custom-package">Error-Handling in Custom Package</h2>
@@ -557,4 +559,105 @@ httpmock.RegisterReponder("GET", url,
     httpmock.NewStringResponder(200, `{'request':10}`))
 
 //...
+```
+
+<h1 id="go-libraries">Go Libraries</h1>
+
+<h2 id="testing-library">Testing</h2>
+
+### Unit Test
+- `SkipNow` Skip test and break down test
+- `Skip` Skip test
+- `parallel`: Run test with other tests that also have  `t.Parallel()`。
+
+```go
+func TestWriteToMap(t *testing.T) {
+    t.Parallel()
+    for _, tt := range pairs {
+        WriteToMap(tt.k, tt.v)
+    }
+}
+func TestReadFromMap(t *testing.T) {
+    t.Parallel()
+    for _, tt := range pairs {
+        actual := ReadFromMap(tt.k)
+        if actual != tt.v {
+            t.Errorf("the value of key(%s) is %s, expected: %s", tt.k, actual, tt.v)
+        }
+    }
+}
+```
+
+### Benchmark Test
+```go
+func BenchmarkHello(b *testing.B){
+    for i:=0; i<b.N;i++{
+        fmt.Sprintf("hello")
+    }
+}
+```
+The test will run code by `b.N` times and monitor the time and memory consumption  per loop.
+`go test -bench=. --benchmem`
+
+```
+BenchmarkHello 100000 282 ns/op  1 alloc/op 
+```
+
+However, if you want to run the tests in parallel, you can refer to `RunParalle` method. Go will
+create a some goroutines and divide `n` into these goroutines.
+```go
+func BenchmarkTmplExucte(b *testing.B) {
+    b.ReportAllocs()
+    templ := template.Must(template.New("test").Parse("Hello, {{.}}!"))
+    b.RunParallel(func(pb *testing.PB) {
+        // Each goroutine has its own bytes.Buffer.
+        var buf bytes.Buffer
+        for pb.Next() {
+            // The loop body is executed b.N times total across all goroutines.
+            buf.Reset()
+            templ.Execute(&buf, "World")
+        }
+    })
+}
+```
+
+### Examples
+Verify the example code, Example functions may including line comment that begin with "Output:"
+```go
+func ExampleHello() {
+    fmt.Println("Hello")
+    // Output: Hello
+}
+```
+Example convention
+- package example: `func Example(){...}`
+- function example: `func ExampleF(){...}`
+- type example: `func ExampleT(){...}`
+- method of type example: `func ExampleT_M(){...}`
+For various proposes, you can also add suffix to name the above functions.
+
+### Test setup and teardown
+If you get used to `JUnit` framework, you are quite familiar with `setup` and `teardown` to 
+initialize and destrory resources at every time to run tests. Go also provide these features for 
+go test.
+```go
+var db struct {  
+    Dns string
+}
+func TestMain(m *testing.M) {
+    // initialization
+    db.Dns = os.Getenv("DATABASE_DNS")
+    if db.Dns == "" {
+        db.Dns = "root:123456@tcp(localhost:3306)/?charset=utf8&parseTime=True&loc=Local"
+    }
+
+    flag.Parse()
+    exitCode := m.Run()
+
+    // clean resources
+    db.Dns = ""
+
+    // report test
+    os.Exit(exitCode)
+}
 ```
