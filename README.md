@@ -13,6 +13,11 @@
 - [HTTP Mock](#http-mock)
 - [GO Libraries](#go-libraries)
     - [Testing](#testing-library)
+- [Go Concurrenty Pattern](#go-concurrency-pattern)
+    - [Prevent Goroutine Leaks](#prevent-goroutine-leaks)
+    - [Error Handling](#error-handling)
+    - [Pipeline](#pipeline)
+    - [Fan-out, fan-in](#fan-out-fan-in)
 
 <h1 id="best-practices">Best Practices</h1>
 <h2 id="error-handing-in-custom-package">Error-Handling in Custom Package</h2>
@@ -660,4 +665,250 @@ func TestMain(m *testing.M) {
     // report test
     os.Exit(exitCode)
 }
+```
+
+<h1 id="go-concurrency-pattern">Go Concurrency Pattern</h1>
+
+<h2 id="prevent-goroutine-leaks">Prevent Goroutine Leaks<h2>
+
+*if a goroutine is responsiable for creating another goroutine, it is also responsiable for ensuring it can stop the goroutine*
+- Creating consumer goroutine, using `done` as signal.
+```go
+doWork := func (
+    done <- chan interface{},
+    strings <- chan string,
+)<- chan interface{} {
+    terminated := make(chan interface{})
+    go func () {
+        defer fmt.Println("dowork exited. ")
+        defer close(terminated)
+        for {
+            select {
+                case s := <- strings
+                    fmt.Println(s)
+                case <- done
+                    return
+            }
+        }
+    }()
+    return terminated
+}
+done := make(chan interface{})
+terminated := doWork(done, nil)
+go func(){
+    time.Sleep(1 * time.Second)
+    fmt.Println("Cancel doWork goroutine")
+    close(done)
+}()
+<- terminated
+fmt.Println("done")
+```
+
+- Creating producer goroutine, using `done` as signal
+```go
+newRandStream := func(done<-chan interface{}) <- chan int {
+    randStream := make(chan int)
+    go func(){
+        defer fmt.Println("newRandStream clousre exited.")
+        defer close(randStream)
+        for {
+            select {
+                case randStream <- rand.Int():
+                case <- done:
+                    return
+            }
+        }
+    }()
+    return randStream
+}()
+done := make(chan interface{})
+randStream := newRandStream(done)
+fmt.Println("3 random int")
+for i:=0; i < 3 ; i++ {
+    fmt.Println(<-randStream)
+}
+close(done)
+```
+
+<h2 id="error-handling">Error Handling </h2>
+
+Sending errors to another part of program which has complete information about the state of sender.
+```go
+type Result struct {
+    Error error
+    Response *http.Response
+}
+checkStatus := func(done<-chan interface{}, urls ... string)<-chan Result {
+    results := make(chan Result)
+    go func() {
+        defer close(results)
+        for _, url := range urls {
+            var result Result
+            resp, err := http.Get(url)
+            result := Result{Error: err, Response: resp}
+            select {
+                case <- done:
+                    return
+                case results <- result:
+            }
+        }
+    }()
+    return results
+}
+done := make(chan interface{})
+defer close(done)
+urls := []string{"www.google.com", "https://badhost"}
+for result := range checkStatus(done, urls...){
+    if result.Error != nil {
+        fmt.Printf("error: %v", result.Error)
+        continue
+    }
+    fmt.Printf("Respnse: %v\n", result.Response.Status)
+}
+```
+
+<h2 id="pipeline">Pipeline</h2>
+Each stage takes input from upstream, processes it and sends it to downstream.
+
+```go
+generator := func(done<-chan interface{}, integers ...int) <- chan int {
+    intStream := make(chan int)
+    go func(){
+        defer close(intstream)
+        for _, i := range integers {
+            select {
+                case <- done:
+                    return
+                case intStream <- i:
+            }
+        }
+    }()
+    return intStream
+}
+multiply := func(
+    done <- chan interface{},
+    intStream <- chan int,
+    multiplier int,
+)<- chan int {
+    multipliedStream := make(chan int)
+    go func() {
+        defer close(multipliedStream)
+        for i := range intStream {
+            select {
+                case <-done:
+                    return
+                case multipliedStream <- i * multiplier
+            }
+        }
+    }
+    return multipliedStrem
+}
+add := func(
+    done <-chan interface{},
+    intStream <- chan int,
+    additive int,
+)<- chan int {
+    addedStream := make(chan int)
+    go func(){
+        defer close(addedStream)
+        for i := range intStream {
+            select {
+                case <- done:
+                    return
+                case addedStream <- i + additive:
+            }
+        }
+    }
+    return addedStream
+}
+done := make(chan interface{})
+defer close(done)
+
+intStream := genertor(done, 1, 2, 3, 4)
+pipeline := multiply(done, add(done, multiply(done, intStream, 2), 1), 2)
+for v := range pipeline {
+    fmt.Println(v)
+}
+```
+
+<h2 id="fan-out-fan-in">Fan-Out, Fan-In</h2>
+
+**Criterias** of fan-out
+- order independence
+- duration
+
+```go
+    primerFinder := func(
+		done <-chan interface{},
+		valueStream <-chan interface{},
+	) <-chan interface{} {
+		primerStream := make(chan interface{})
+		go func() {
+			defer close(primerStream)
+			for {
+				select {
+				case <-done:
+					return
+				case value := <-valueStream:
+					switch value := value.(type) {
+					case int:
+						var factor bool
+						for i := 2; i <= value/2; i++ {
+							if value%i == 0 {
+								factor = true
+								break
+							}
+						}
+						if factor == false {
+							primerStream <- value
+						}
+					}
+				}
+			}
+		}()
+		return primerStream
+	}
+	fanIn := func(
+		done <-chan interface{},
+		channels ...<-chan interface{},
+	) <-chan interface{} {
+		var wg sync.WaitGroup
+		multiplexedStream := make(chan interface{})
+		multiplex := func(c <-chan interface{}) {
+			defer wg.Done()
+			for i := range c {
+				select {
+				case <-done:
+					return
+				case multiplexedStream <- i:
+				}
+			}
+		}
+		wg.Add(len(channels))
+		for _, c := range channels {
+			go multiplex(c)
+		}
+		go func() {
+			wg.Wait()
+			close(multiplexedStream)
+		}()
+		return multiplexedStream
+	}
+
+	rand := func() interface{} { return rand.Intn(50000000) }
+	done := make(chan interface{})
+	defer close(done)
+	start := time.Now()
+	randIntStream := repeatFn(done, rand)
+	numFinders := runtime.NumCPU()
+	fmt.Printf("Spinning up %d prime finder. \n", numFinders)
+	finders := make([]<-chan interface{}, numFinders)
+	for i := 0; i < numFinders; i++ {
+		finders[i] = primerFinder(done, randIntStream)
+	}
+	fmt.Println("Primes: ")
+	for prime := range take(done, fanIn(done, finders...), 10) {
+		fmt.Printf("\t%d\n", prime)
+	}
+	fmt.Printf("Search took: %v\n", time.Since(start))
 ```
