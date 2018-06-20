@@ -18,6 +18,8 @@
     - [Error Handling](#error-handling)
     - [Pipeline](#pipeline)
     - [Fan-out, fan-in](#fan-out-fan-in)
+    - [The Tee-channel](#the-tee-channel)
+    - [Context](#context)
 
 <h1 id="best-practices">Best Practices</h1>
 <h2 id="error-handing-in-custom-package">Error-Handling in Custom Package</h2>
@@ -672,7 +674,9 @@ func TestMain(m *testing.M) {
 <h2 id="prevent-goroutine-leaks">Prevent Goroutine Leaks<h2>
 
 *if a goroutine is responsiable for creating another goroutine, it is also responsiable for ensuring it can stop the goroutine*
+
 - Creating consumer goroutine, using `done` as signal.
+
 ```go
 doWork := func (
     done <- chan interface{},
@@ -705,6 +709,7 @@ fmt.Println("done")
 ```
 
 - Creating producer goroutine, using `done` as signal
+
 ```go
 newRandStream := func(done<-chan interface{}) <- chan int {
     randStream := make(chan int)
@@ -733,6 +738,7 @@ close(done)
 <h2 id="error-handling">Error Handling </h2>
 
 Sending errors to another part of program which has complete information about the state of sender.
+
 ```go
 type Result struct {
     Error error
@@ -911,4 +917,150 @@ for v := range pipeline {
 		fmt.Printf("\t%d\n", prime)
 	}
 	fmt.Printf("Search took: %v\n", time.Since(start))
+```
+
+<h2 id="the-tee-channel">The Tee-channel </h2>
+
+`tee` command in Unix-like system
+
+```go
+tee := func(
+    done <- chan interface{},
+    in <- chan interface{},
+)(_, _ <-chan interface{}) {<-chan interface{}} {
+    out1 := make(chan interface{})
+    out2 := make(chan interface{})
+    go func() {
+        defer close(out1)
+        defer close(out2)
+        for val := range orDone(done, in){
+            var out1, out2 = out1, out2
+            for i:= 0; i<2; i++ {
+                select {
+                    case <- done:
+                    case out1<-val:
+                        out1 = nil
+                    case out3<- val:
+                        out2 =nil
+                }
+            }
+        }
+    }
+    return out1, out2
+}
+```
+
+
+<h2 id="context">Context</h2>
+
+`context` pacakge was brought into standard library since Go 1.7. It helps to make Go cocurrency idioms easily.
+
+```go
+var Canceled = errors.New("context canceled")
+var DeadlineExceeded error = deadlineExceededError{}
+type CancelFunc func()
+type Context interface {}
+func Background() Context
+func TODO() Context
+func WithCancel(parent Context)(Context, CancelFunc)
+func WithDeadline(parent Context, deadline time.Time)(Context, CancelFunc)
+func WithTimeout(parent Context, timeout time.Duration)(Context, CancelFunc)
+func WithValue(parent Contex, key, val interface{}) Context
+```
+
+**Usage**
+
+```go
+var wg sync.WaitGroup
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+wg.Add(1)
+go func() {
+	defer wg.Done()
+	if err := printGreeting(ctx); err != nil {
+		fmt.Printf("cannot print greeting: %v\n", err)
+		cancel()
+	}
+}()
+wg.Add(1)
+go func() {
+	defer wg.Done()
+	if err := printFarewell(ctx); err != nil {
+		fmt.Printf("cannot print farewell: %v\n", err)
+	}
+}()
+wg.Wait()
+processRequest("jane", "abc123")
+
+func printGreeting(ctx context.Context) error {
+	if greeting, err := genGreeting(ctx); err != nil {
+		return err
+	} else {
+		fmt.Printf("%s world!\n", greeting)
+		return nil
+	}
+}
+
+func printFarewell(ctx context.Context) error {
+	if farewell, err := genFarewell(ctx); err != nil {
+		return err
+	} else {
+		fmt.Printf("%s world!\n", farewell)
+		return nil
+	}
+}
+
+func genGreeting(ctx context.Context) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+	switch locale, err := locale(ctx); {
+	case err != nil:
+		return "", err
+	case locale == "EN/US":
+		return "hello", nil
+	}
+	return "", fmt.Errorf("unsupport locale")
+}
+
+func genFarewell(ctx context.Context) (string, error) {
+	switch locale, err := locale(ctx); {
+	case err != nil:
+		return "", err
+	case locale == "EN/US":
+		return "goodbye", nil
+	}
+	return "", fmt.Errorf("unsupport locale")
+}
+
+func locale(ctx context.Context) (string, error) {
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	case <-time.After(1 * time.Minute):
+	}
+	return "EN/US", nil
+}
+
+type ctxKey int
+
+const (
+	ctxUserId ctxKey = iota
+	ctxAuthToken
+)
+
+func UserId(c context.Context) string {
+	return c.Value(ctxUserId).(string)
+}
+func Authoken(c context.Context) string {
+	return c.Value(ctxAuthToken).(string)
+}
+
+func processRequest(userId, authToken string) {
+	ctx := context.WithValue(context.Background(), ctxUserId, userId)
+	ctx = context.WithValue(ctx, ctxAuthToken, authToken)
+	handleResponse(ctx)
+}
+func handleResponse(ctx context.Context) {
+	fmt.Printf("handling response for %v (%v)", UserId(ctx), Authoken(ctx))
+}
 ```
