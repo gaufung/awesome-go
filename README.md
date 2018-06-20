@@ -313,10 +313,13 @@ Found: for row := range arr2Dim {
 
 ### map
 - making
+
 ```go
 map1 := make(map[keyType]ValueType)
 ```
+
 - initialization
+
 ```go
 map1 := map[string]int{
    "one" : 1,
@@ -325,17 +328,20 @@ map1 := map[string]int{
 ```
 
 - testing if a key exisits in a map 
+
 ```go
 val1, isPresent = map1[key1]
 ```
 
 - deleting a key
+
 ```go
 delete(map1, key1)
 ```
 
 ### struct
 - making
+
 ```go
 type struct1 struct {
     field1 type1
@@ -344,11 +350,14 @@ type struct1 struct {
 }
 ```
 - initialization
+
 ```go
 ms := new(struct1)
 ms := &strcut1{....}
 ```
-- factroy function 
+
+- factroy function
+ 
 ```go
 func Newstrcut1(n int, f float32, name string) *strcut1 {
     return &struct1{n, f, name}
@@ -357,12 +366,15 @@ func Newstrcut1(n int, f float32, name string) *strcut1 {
 
 ### interface
 - test a value implements an interface
+
 ```go
 if v, ok := v.(Stringer); ok {
     //....
 }
 ```
+
 - type classifier
+
 ```go
 func classifier(item interface{}){
     switch node:=item.(type){
@@ -374,8 +386,10 @@ func classifier(item interface{}){
     }
 }
 ```
+
 ### function
-- use cover to stop panic 
+- use cover to stop panic
+ 
 ```go 
 func protect(g func()){
     defer func(){
@@ -389,6 +403,7 @@ func protect(g func()){
 
 ### file
 - open and read a file 
+
 ```go
 file, err := os.Open("input.dat")
 if err != nil {
@@ -405,7 +420,9 @@ for {
     fmt.Printf(str)
 }
 ```
+
 - read and write a file with a sliced buffer
+
 ```go
 func cat(f *file.File){
     const BUF = 512
@@ -429,12 +446,15 @@ func cat(f *file.File){
 - buffered channels for performance
 - limit the number of items in a channel and packing them in array
 - loop over a channel 
+
 ```go
 for v:= range ch {
     // do something with v
 }
 ```
+
 - test if a channel ch is closed
+
 ```go
 for {
     if input, open := <- ch; !open{
@@ -444,7 +464,9 @@ for {
     }
 }
 ```
+
 - timeout pattern
+
 ```go
 timeout := make(chan bool, 1)
 go func(){
@@ -458,7 +480,9 @@ select {
         // time out
 }
 ```
+
 - use in- and out- channel instead of locking
+
 ```go
 func worker(in, out chan *Task){
     for {
@@ -630,6 +654,7 @@ func BenchmarkTmplExucte(b *testing.B) {
 
 ### Examples
 Verify the example code, Example functions may including line comment that begin with "Output:"
+
 ```go
 func ExampleHello() {
     fmt.Println("Hello")
@@ -673,7 +698,8 @@ func TestMain(m *testing.M) {
 
 <h2 id="prevent-goroutine-leaks">Prevent Goroutine Leaks<h2>
 
-*if a goroutine is responsiable for creating another goroutine, it is also responsiable for ensuring it can stop the goroutine*
+*if a goroutine is responsiable for creating another goroutine, it is also responsiable for ensuring it can stop the goroutine*  
+
 
 - Creating consumer goroutine, using `done` as signal.
 
@@ -840,6 +866,7 @@ for v := range pipeline {
 <h2 id="fan-out-fan-in">Fan-Out, Fan-In</h2>
 
 **Criterias** of fan-out
+
 - order independence
 - duration
 
