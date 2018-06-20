@@ -695,10 +695,9 @@ func TestMain(m *testing.M) {
 ```
 
 <h1 id="go-concurrency-pattern">Go Concurrency Pattern</h1>
+<h2 id="prevent-goroutine-leaks">Prevent Goroutine Leaks</h2>
 
-<h2 id="prevent-goroutine-leaks">Prevent Goroutine Leaks<h2>
-
-*if a goroutine is responsiable for creating another goroutine, it is also responsiable for ensuring it can stop the goroutine*  
+> if a goroutine is responsiable for creating another goroutine, it is also responsiable for ensuring it can stop the goroutine
 
 
 - Creating consumer goroutine, using `done` as signal.
