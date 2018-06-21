@@ -1,31 +1,32 @@
 **Table of Content**
 
-- [Best Practices](#best-practices)
-    - [Error-Handling in Custom Package](#error-handling-in-custom-package)
-    - [Error-Handling Scheme with Closure](#error-handling-scheme-with-clouse)
-    - [Testing](#testing)
-    - [Channel](#channel)
-    - [Code Snippets](#code-snippets)
-    - [Advices](#advices)
+- [1 Best Practices](#best-practices)
+    - [1.1 Error-Handling in Custom Package](#error-handling-in-custom-package)
+    - [1.2 Error-Handling Scheme with Closure](#error-handling-scheme-with-clouse)
+    - [1.3 Testing](#testing)
+    - [1.4 Channel](#channel)
+    - [1.5 Code Snippets](#code-snippets)
+    - [1.6 Advices](#advices)
 
-- [Go Project with Makefile](#go-project-with-makefile)
-- [Go Web Unit Test](#go-web-unit-test)
-- [HTTP Mock](#http-mock)
-- [GO Libraries](#go-libraries)
-    - [Testing](#testing-library)
-- [Go Concurrenty Pattern](#go-concurrency-pattern)
-    - [Prevent Goroutine Leaks](#prevent-goroutine-leaks)
-    - [Error Handling](#error-handling)
-    - [Pipeline](#pipeline)
-    - [Fan-out, fan-in](#fan-out-fan-in)
-    - [The Tee-channel](#the-tee-channel)
-    - [Context](#context)
+- [2 Go Project with Makefile](#go-project-with-makefile)
+- [3 Go Web Unit Test](#go-web-unit-test)
+- [4 HTTP Mock](#http-mock)
+- [5 GO Libraries](#go-libraries)
+    - [5.1 Testing](#testing-library)
+- [6 Go Concurrenty Pattern](#go-concurrency-pattern)
+    - [6.1 Prevent Goroutine Leaks](#prevent-goroutine-leaks)
+    - [6.2 Error Handling](#error-handling)
+    - [6.3 Pipeline](#pipeline)
+    - [6.4 Fan-out, fan-in](#fan-out-fan-in)
+    - [6.5 The Tee-channel](#the-tee-channel)
+    - [6.6 Context](#context)
 
-<h1 id="best-practices">Best Practices</h1>
-<h2 id="error-handing-in-custom-package">Error-Handling in Custom Package</h2>
+<h1 id="best-practices">1 Best Practices</h1>
+<h2 id="error-handling-in-custom-package">1.1 Error-Handling in Custom Package</h2>
 
 -  *always recover from panic from your package*
 -  *return errors to the caller of your package*
+-  *error message with low-case sentences*
 
 ```go
 package parse 
@@ -71,7 +72,7 @@ func field2numbers(fields []string)(number []int){
 }
 ```
 
-<h2 id="error-handing-schem-wtih-closures">Error-Handling Scheme with Closure</h2>
+<h2 id="error-handling-scheme-with-clouse">1.2 Error-Handling Scheme with Closure</h2>
 
 Suppose all functions have the signature:
 
@@ -119,7 +120,7 @@ func main(){
 }
 ```
 
-<h2 id="test">Testing</h2>
+<h2 id="test">1.3 Testing</h2>
 
 - Fail(): making test function failed
 - FailNow(): making test function failed and stop execution.
@@ -154,7 +155,7 @@ if GOMAXPROCS is greater than 1, you application can execute simultaneously by m
 **GOMAXPROCS** is equal to the number of threads, on a machine with more than 1 core, as many as thread as there cores can run in parallel.
 
 
-<h2 id="channel">Channel</h2>
+<h2 id="channel">1.4 Channel</h2>
 
 ### Semaphore pattern
 ```go
@@ -239,7 +240,7 @@ func Worker(in, out chan *Task) {
 }
 ```
 
-<h2 id="code-snippets">Code Snippets</h2>
+<h2 id="code-snippets">1.5 Code Snippets</h2>
 ### Strings
 - change a character
 ```go
@@ -493,7 +494,7 @@ func worker(in, out chan *Task){
 }
 ```
 
-<h2 id="advices">Advices</h2>
+<h2 id="advices">1.6 Advices</h2>
 
 - Use initializing declaration form `:=` wherever possible.
 - Use bytes instead of strings if possible
@@ -506,7 +507,7 @@ func worker(in, out chan *Task){
 - Using caching
 
 
-<h1 id="go-project-with-makefile">Go Project with Makefile</h1>
+<h1 id="go-project-with-makefile">2 Go Project with Makefile</h1>
 
 Though go provides many tools for us to build project, we still get benifit from `Makefile`.
 
@@ -556,7 +557,7 @@ build-windows:
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GOBUILD) -o $(BINARY_WINDOW) -v
 ```
 
-<h1 id="go-web-unit-test">Go Web Unit Test</h1>
+<h1 id="go-web-unit-test">3 Go Web Unit Test</h1>
 As you complete some http request handlers, you want to test them to check they work as expected.
 
 ```go
@@ -579,7 +580,7 @@ if rr.code != exptectCode{
 }
 ```
 
-<h1 id="http-mock">Http Mock</h1>
+<h1 id="http-mock">4 Http Mock</h1>
 Once you want to mock a http server, you do not rewrite your codes to adjust to the mock interfaces
 
 ```go
@@ -592,9 +593,9 @@ httpmock.RegisterReponder("GET", url,
 //...
 ```
 
-<h1 id="go-libraries">Go Libraries</h1>
+<h1 id="go-libraries">5 Go Libraries</h1>
 
-<h2 id="testing-library">Testing</h2>
+<h2 id="testing-library">5.1 Testing</h2>
 
 ### Unit Test
 - `SkipNow` Skip test and break down test
@@ -694,8 +695,8 @@ func TestMain(m *testing.M) {
 }
 ```
 
-<h1 id="go-concurrency-pattern">Go Concurrency Pattern</h1>
-<h2 id="prevent-goroutine-leaks">Prevent Goroutine Leaks</h2>
+<h1 id="go-concurrency-pattern">6 Go Concurrency Pattern</h1>
+<h2 id="prevent-goroutine-leaks">6.1 Prevent Goroutine Leaks</h2>
 
 > if a goroutine is responsiable for creating another goroutine, it is also responsiable for ensuring it can stop the goroutine
 
@@ -760,7 +761,7 @@ for i:=0; i < 3 ; i++ {
 close(done)
 ```
 
-<h2 id="error-handling">Error Handling </h2>
+<h2 id="error-handling">6.2 Error Handling </h2>
 
 Sending errors to another part of program which has complete information about the state of sender.
 
@@ -798,7 +799,7 @@ for result := range checkStatus(done, urls...){
 }
 ```
 
-<h2 id="pipeline">Pipeline</h2>
+<h2 id="pipeline">6.3 Pipeline</h2>
 Each stage takes input from upstream, processes it and sends it to downstream.
 
 ```go
@@ -862,7 +863,7 @@ for v := range pipeline {
 }
 ```
 
-<h2 id="fan-out-fan-in">Fan-Out, Fan-In</h2>
+<h2 id="fan-out-fan-in">6.4 Fan-Out, Fan-In</h2>
 
 **Criterias** of fan-out
 
@@ -945,7 +946,7 @@ for v := range pipeline {
 	fmt.Printf("Search took: %v\n", time.Since(start))
 ```
 
-<h2 id="the-tee-channel">The Tee-channel </h2>
+<h2 id="the-tee-channel">6.5 The Tee-channel </h2>
 
 `tee` command in Unix-like system
 
@@ -977,7 +978,7 @@ tee := func(
 ```
 
 
-<h2 id="context">Context</h2>
+<h2 id="context">6.6 Context</h2>
 
 `context` pacakge was brought into standard library since Go 1.7. It helps to make Go cocurrency idioms easily.
 
