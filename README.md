@@ -20,6 +20,8 @@
     - [6.4 Fan-out, fan-in](#fan-out-fan-in)
     - [6.5 The Tee-channel](#the-tee-channel)
     - [6.6 Context](#context)
+- [7 Concurrency at Scale](#concurrency-at-scale)
+    - [7.1 Hearbets](#heartbeats)
 
 <h1 id="best-practices">1 Best Practices</h1>
 <h2 id="error-handling-in-custom-package">1.1 Error-Handling in Custom Package</h2>
@@ -241,7 +243,9 @@ func Worker(in, out chan *Task) {
 ```
 
 <h2 id="code-snippets">1.5 Code Snippets</h2>
+
 ### Strings
+
 - change a character
 ```go
 str := "hello"
@@ -505,7 +509,17 @@ func worker(in, out chan *Task){
 - specify an initial capacity for maps
 - When define methods, using a pointer to tyepe as a receiver.
 - Using caching
-
+- closing http response body
+```go
+resp, err := http.Get("https://api.ipify.org?format=json")
+if err != nil {
+    fmt.Println(err)
+    return
+}
+defer resp.Body.Close()//ok, most of the time :-)
+body, err := ioutil.ReadAll(resp.Body)
+```
+- When you create a type declaration by defining a new type from an existing type, you don't inherit the methods defined for that existing type.
 
 <h1 id="go-project-with-makefile">2 Go Project with Makefile</h1>
 
@@ -1089,5 +1103,55 @@ func processRequest(userId, authToken string) {
 }
 func handleResponse(ctx context.Context) {
 	fmt.Printf("handling response for %v (%v)", UserId(ctx), Authoken(ctx))
+}
+```
+
+<h1 id="concurrency-at-scale">7 Concurrency at Scale</h1>
+<h2 id="heartbeats">7.1 Heartbeats</h2>
+
+- invoke heartbeats at specific time interval
+```go
+doWork := func(
+    done <-chan interface{},
+    pluseInterval time.Duration,
+)(<-chan interface{}, <-chan time.Time){
+    heartbeat := make(chan interface{})
+    results := make(chan time.Time)
+    go func(){
+        defer close(heartbeat)
+        defer close(results)
+
+        pluse := time.Tick(plusInterval)
+        workGen := time.Tick(2 * plusInterval)
+        sendPluse := func(){
+            select {
+                case heartbeat <- struct{}{}:
+                default:
+            }
+        }
+        sendResult := func(r time.Time){
+            for {
+                select {
+                case <- done:
+                    return
+                case <-plus:
+                    sendPluse()
+                case result <- r:
+                    return
+                }
+            }
+        }
+        for {
+            select {
+            case <-done:
+                return
+            case <- pluse:
+                sendPluse()
+            case r := <- workGen:
+                sendResult(r)
+            }
+        }
+    }()
+    return heartbeat, result
 }
 ```
