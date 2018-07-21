@@ -22,6 +22,9 @@
     - [6.6 Context](#context)
 - [7 Concurrency at Scale](#concurrency-at-scale)
     - [7.1 Hearbets](#heartbeats)
+- [8 Traps](#traps)
+    - [8.1 Never Guarantee Concurrency](#never-guarantee-concurrency)
+    - [8.2 Methods of Type Pointer Receiver](#type-point-receiver-method)
 
 <h1 id="best-practices">1 Best Practices</h1>
 <h2 id="error-handling-in-custom-package">1.1 Error-Handling in Custom Package</h2>
@@ -1155,3 +1158,76 @@ doWork := func(
     return heartbeat, result
 }
 ```
+
+
+<h1 id="traps">8 Traps</h1>
+<h2 id="never-guarantee-concurrency">8.1 Never Guarantee Concurrency</h2>
+What will output of the following code?
+
+```go
+func main() {
+    names := []string{"tom", "allen", "lili"}
+    for _, name := range names {
+        go func(){
+            fmt.Println(name)
+        }()
+    }
+    runtime.GOMAXPROCS(1)
+    runtime.Gosched()
+}
+```
+The output is:
+```
+lili
+lili
+lili
+```
+We can find out that goroutine do not start at the time it is created. You MUST never guarantee the begining of concurrency. How we can rectify the code to meet our expectation.
+
+```go
+func main(){
+    names := []string{"tom", "allen", "lili"}
+    for _, name := range names {
+        go func(){
+            fmt.Println(name)
+        }()
+        time.Sleep(time.Second)
+    }
+    runtime.GOMAXPROCS(1)
+    runtime.Gosched()
+}
+```
+The output will be:
+```
+tom
+allen
+lili
+```
+Main goroutine `sleeps` one second to wait sub goroutine starts.
+
+<h2 id="type-point-receiver-method">8.2 Methods of Type Pointer Receiver</h2>
+Can this code will work?
+
+```go
+type Lili struct {
+
+}
+func (li *Lili) printPointer(){
+    fmt.Println("Pointer")
+}
+func main(){
+    li := Lili{}
+    li.printPointer()
+}
+```
+
+It will print `Pointer`， which means `li` can call `printPointer` method because `li` is addressable.
+What about the following code:
+
+```go
+func main() {
+    Lili{}.printPointer()
+}
+```
+You will get compile error as `Lili{}` is not addressable.
+
