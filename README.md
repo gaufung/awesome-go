@@ -888,79 +888,80 @@ for v := range pipeline {
 - duration
 
 ```go
-    primerFinder := func(
-		done <-chan interface{},
-		valueStream <-chan interface{},
-	) <-chan interface{} {
-		primerStream := make(chan interface{})
-		go func() {
-			defer close(primerStream)
-			for {
-				select {
-				case <-done:
-					return
-				case value := <-valueStream:
-					switch value := value.(type) {
-					case int:
-						var factor bool
-						for i := 2; i <= value/2; i++ {
-							if value%i == 0 {
-								factor = true
-								break
-							}
-						}
-						if factor == false {
-							primerStream <- value
-						}
-					}
-				}
-			}
-		}()
-		return primerStream
-	}
-	fanIn := func(
-		done <-chan interface{},
-		channels ...<-chan interface{},
-	) <-chan interface{} {
-		var wg sync.WaitGroup
-		multiplexedStream := make(chan interface{})
-		multiplex := func(c <-chan interface{}) {
-			defer wg.Done()
-			for i := range c {
-				select {
-				case <-done:
-					return
-				case multiplexedStream <- i:
+func gen(ctx context.Context, nums... int) <-chan int {
+	out := make(chan int)
+	go func(){
+		defer close(out)
+		for _, n := range nums {
+			select {
+			case <- ctx.Done:
+				return 
+			default:
+				if n % n == 0 {
+					out <- n
 				}
 			}
 		}
-		wg.Add(len(channels))
-		for _, c := range channels {
-			go multiplex(c)
-		}
-		go func() {
-			wg.Wait()
-			close(multiplexedStream)
-		}()
-		return multiplexedStream
-	}
+	}()
+	return out
+}
 
-	rand := func() interface{} { return rand.Intn(50000000) }
-	done := make(chan interface{})
-	defer close(done)
-	start := time.Now()
-	randIntStream := repeatFn(done, rand)
-	numFinders := runtime.NumCPU()
-	fmt.Printf("Spinning up %d prime finder. \n", numFinders)
-	finders := make([]<-chan interface{}, numFinders)
-	for i := 0; i < numFinders; i++ {
-		finders[i] = primerFinder(done, randIntStream)
+func sq(ctx context.Context, in <- chan int) <- chan float64 {
+	out := make(chan float64)
+	go func() {
+		defer clsoe(out)
+		for n:= range in {
+			select {
+			case <- ctx.Done():
+				return
+			default:
+				out <- math.Sqrt(float64(n))
+			}
+		}
+	}()
+	return out 
+}
+
+func merge(ctx context.Context, cs ... <- chan float64) <- chan float64 {
+	var wg sync.WaitGroup
+	out := make(chan float64)
+	output := func(c <-chan float64) {
+		defer wg.Done()
+		for n := range c {
+			select {
+			case <- ctx.Done():
+				return
+			default:
+				out <- n * n
+			}
+		}
 	}
-	fmt.Println("Primes: ")
-	for prime := range take(done, fanIn(done, finders...), 10) {
-		fmt.Printf("\t%d\n", prime)
+	wg.Add(len(cs))
+	for _, c := range cs {
+		go ouput(c)
 	}
-	fmt.Printf("Search took: %v\n", time.Since(start))
+	
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
+	return out
+}
+
+func main(){
+	ctx, cancel := context.WitchCancel(context.Backgroud())
+	defer cancel()
+	
+	a := []int {2, 3, 4, 5, 6, 7}
+	in := gen(ctx, a...)
+	c := make([]<- chan float64, 3)
+	for i:=0; i<3; i++ {
+		c[i] = sq(ctx, in)
+	}
+	for n := range merge(ctx, c...){
+		fmt.Printf("%d\s", n)
+	}
+}
 ```
 
 <h2 id="the-tee-channel">6.5 The Tee-channel </h2>
